@@ -1,26 +1,56 @@
 #!/bin/bash
 
+group1="LowPass"
+group2="BRCA"
+
 # ~1 hr
-yes | bash gs_prepvm.sh
-yes | bash gs_genomestrip_dependencies.sh
+cm="yes | bash prep_vm.sh"
+echo $cm
+cm="yes | bash download_dependencies.sh" 
+echo $cm
 
+## copy BAMS to this VM
 ## 1 hr
-yes | bash gs_copy_bams.sh LowPass BRCA
+cm="yes | bash copy_bams.sh "${group1}" "${group2}
+echo $cm
 
+## re-process the header of the BAMs
 ## 3 hrs
-bash gs_localrunbystep.sh LowPass BRCA gs_reheader_platform.sh
-yes | bash gs_create_bam_paths.sh
+cm="bash docker_run_by_script.sh "${group1}" "${group2}" reheader_bam_platform.sh"
+echo $cm
+
+## create the file containing the path to the new BAMs
+cm="yes | bash create_bam_paths.sh"
+echo $cm
+
+## create the gender info file for all the BAMs
 ## ?
-bash gs_localrunbystep.sh LowPass BRCA gs_create_gender_map.sh
+cm="bash docker_run_by_script.sh "${group1}" "${group2}" gs_create_gender_map.sh"
+echo $cm
+
+## preprocess the BAMS
 ## 10 hrs
-bash gs_localrunbystep.sh LowPass BRCA svPreprocess.sh
+cm="bash docker_run_by_script.sh "${group1}" "${group2}" svPreprocess.sh"
+echo $cm
+
+## discover deletions
 ## 1 hr
-bash gs_localrunbystep.sh LowPass BRCA svDiscovery.sh
+cm="bash docker_run_by_script.sh "${group1}" "${group2}" svDiscovery.sh"
+echo $cm
+
+## genotype deletions
 ## 3.5 hrs, CPU: 12-25%
-bash gs_localrunbystep.sh LowPass BRCA delGenotype.sh 
+cm="bash docker_run_by_script.sh "${group1}" "${group2}" delGenotype.sh"
+echo $cm
 
+## discover CNVs (deletions and amplifciations) 
 ## 10 hrs
-bash gs_localrunbystep.sh LowPass BRCA cnvDiscovery.sh 
+cm="bash docker_run_by_script.sh "${group1}" "${group2}" cnvDiscovery.sh" 
+echo $cm
 
+## genotype CNVs
 ## 10 mins, CPU: 25%
-bash gs_localrunbystep.sh LowPass BRCA cnvGenotype.sh
+cm="bash docker_run_by_script.sh "${group1}" "${group2}" cnvGenotype.sh"
+echo $cm
+
+## copy outputs to buckets
