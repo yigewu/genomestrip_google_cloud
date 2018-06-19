@@ -4,10 +4,10 @@
 d=$1
 
 ## master directory with inputs, outputs and codes
-gsDir=$2
+mainRunDir=$2
 
 # input BAM
-inputDir=${gsDir}"/inputs"
+inputDir=${mainRunDir}"inputs"
 inputFile=${inputDir}"/bams.list"
 inputType=bam
 
@@ -19,7 +19,7 @@ refDir=Homo_sapiens_assembly19
 refFile=${refDir}/Homo_sapiens_assembly19.fasta
 
 # output
-runDir=${gsDir}"/outputs/"${d}
+runDir=${mainRunDir}"outputs/"${d}
 mx="-Xmx6g"
 
 # tempory dir
