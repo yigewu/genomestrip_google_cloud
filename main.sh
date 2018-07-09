@@ -8,6 +8,11 @@ outputDir=${mainRunDir}"outputs/"${group1}"_"${group2}"/"
 logDir=${mainRunDir}"logs/"
 cmdFile=${logDir}"cmd.txt"
 docker_ps=${logDir}"docker_ps.log"
+bamDir="/home/yigewu2012/bams"
+## name of the current instance
+istName="genomestrip-highpass-ov"
+## name of the zone of the instance
+zone="us-central1-b"
 
 ## start a file containing the docker commands
 touch ${cmdFile} > ${cmdFile}
@@ -25,7 +30,7 @@ echo $cm
 
 ## re-process the header of the BAMs
 ## 3 hrs
-cm="bash docker_run_by_script.sh ${group1} ${group2} reheader_bam_platform4GNU.sh"
+cm="bash run_docker.sh ${group1} ${group2} reheader_bam_platform4GNU.sh"
 echo $cm
 
 ## create the file containing the path to the new BAMs
@@ -34,12 +39,12 @@ echo $cm
 
 ## create the gender info file for all the BAMs
 ## ?
-cm="bash docker_run_by_script.sh "${group1}" "${group2}" create_gender_map.sh"
+cm="bash run_docker.sh "${group1}" "${group2}" create_gender_map.sh"
 echo $cm
 
 ## preprocess the BAMS
 ## 10 hrs
-cm="bash docker_run_by_script.sh "${group1}" "${group2}" svPreprocess.sh"
+cm="bash run_docker.sh "${group1}" "${group2}" svPreprocess.sh"
 echo $cm
 
 ## get the current docker container information
@@ -52,7 +57,7 @@ echo "#!/bin/bash" > ${cmdFile}.sh
 ## discover deletions
 step="svDiscovery"
 while read chr;do
-	cm="bash docker_run_by_script.sh "${group1}" "${group2}" svDiscovery.sh "${chr}
+	cm="bash run_docker.sh "${group1}" "${group2}" svDiscovery.sh "${chr}
 	## get the latest log file for this step
 	ls ${logDir}${step}"CHR"${chr}"_"${group1}"_"${group2}* | tail -1 1>${logDir}"tmp" 2>/dev/null
 	## if in the lastest log file it's done and the output file exist then mark it as done
@@ -87,7 +92,7 @@ num_cpu=${tmp}
 if [ "${num_cpu}" -gt 0 ]
 then
 	while read chr;do
-		cm="bash docker_run_by_script.sh "${group1}" "${group2}" "${step}".sh "${chr}
+		cm="bash run_docker.sh "${group1}" "${group2}" "${step}".sh "${chr}
 		## get the latest log file for this step
 		ls ${logDir}${step}"CHR"${chr}"_"${group1}"_"${group2}* 1>${logDir}"tmp" 2>/dev/null
 		## if in the lastest log file it's done and the output file exist then mark it as done
@@ -132,16 +137,16 @@ num_cpu=${tmp}
 if [ "${num_cpu}" -gt 0 ]
 then
 	while read chr;do
-		cm="bash docker_run_by_script.sh "${group1}" "${group2}" "${step}".sh "${chr}
+		cm="bash run_docker.sh "${group1}" "${group2}" "${step}".sh "${chr}
 		## get the latest log file for this step
-		ls ${logDir}${step}"CHR"${chr}"_"${group1}"_"${group2}* 1>${logDir}"tmp" 2>/dev/null
+		ls ${logDir}${step}"CHR"${chr}"_"${group1}"_"${group2}* 1>${logDir}"step.log" 2>/dev/null
 		## if in the lastest log file it's done and the output file exist then mark it as done
-		if [ ! -s ${logDir}"tmp" ]
+		if [ ! -s ${logDir}"step.log" ]
 		then
 			echo ${step}" for chr"${chr}" hasn't been run yet!"
 			${cm} >> ${cmdFile}
 		else
-			if [ -s ${outputDir}${step}"/"${step}"_"${group1}"_"${group2}"_chr"${chr}".vcf" ] &&  grep -Fq "Script completed successfully" $(cat ${logDir}"tmp" | tail -1)
+			if [ -s ${outputDir}${step}"/"${step}"_"${group1}"_"${group2}"_chr"${chr}".vcf" ] &&  grep -Fq "Script completed successfully" $(cat ${logDir}"step.log" | tail -1)
 			then
 				echo ${step}" for chr"${chr}" done!"
 			else
@@ -166,12 +171,16 @@ then
 	cat ${cmdFile} | head -n ${new_cmd} >> ${cmdFile}.sh
 	tail -n "+"$(expr ${new_cmd} + 1) ${cmdFile} > ${logDir}"tmp"
 	cat ${logDir}"tmp" > ${cmdFile}
+	rm ${logDir}"tmp"
 fi
 
+## detach and delete disks storing the BAM files to save money
+cm="bash delete_disks.sh ${bamDir} ${logDir} ${istName} ${zone}"
+${cm}
 
 ## genotype CNVs
 ## 10 mins, CPU: 25%
-cm="bash docker_run_by_script.sh "${group1}" "${group2}" cnvGenotype.sh"
+cm="bash run_docker.sh "${group1}" "${group2}" cnvGenotype.sh"
 echo $cm
 
 ## copy outputs to buckets

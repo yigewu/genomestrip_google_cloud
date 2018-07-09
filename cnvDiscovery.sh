@@ -35,7 +35,7 @@ outDir=${runDir}"cnvDiscovery/"
 suboutDir=${outDir}${chr}"/"
 mainjobLogDir=${runDir}"logs/"
 subjobLogDir=${mainjobLogDir}${chr}"/"
-vcfFile=${outDir}"cnvDiscovery_"${d}"_chr"${chr}".vcf"
+vcfFile=${outDir}"cnvDiscovery_"${d}".vcf"
 mx="-Xmx6g"
 
 # tempory dir
@@ -80,5 +80,9 @@ java -cp ${classpath} ${mx} \
 	-boundaryPrecision 100 \
 	-minimumRefinedLength 1000 \
 	-P select.validateReadPairs:false \
-	-run \
-	|| exit 1
+	-run
+
+vcfFilegz=${outDir}${chr}"/results/gs_cnv.genotypes.vcf.gz"
+if [ ! -e ${vcfFile} -a -e ${vcfFilegz} ]; then
+	    gunzip -c ${vcfFilegz} > ${vcfFile}
+fi
